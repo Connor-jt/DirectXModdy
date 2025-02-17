@@ -12,13 +12,18 @@
 #pragma comment(lib, "d3dcompiler.lib")
 #include <DirectXMath.h>
 using namespace DirectX;
+using namespace std;
 
 #include <vector>
 #include <iostream>
 #include "globals.h"
 
+#include "3DMaths.h"
+#include "WindowFetcher.h"
+#include "guiInterface.h"
 
-using namespace std;
+
+
 
 // forward declarations
 LRESULT CALLBACK WndProcHook2(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
@@ -37,25 +42,17 @@ WNDPROC winproc_callback = 0;
 ID3D11Device1* dx_device = nullptr;
 ID3D11DeviceContext1* dx_device_context = nullptr;
 
+// our hooked
+
+
 extern "C" __declspec(dllexport) void DLLRun(IDXGISwapChain* swap_chain, UINT SyncInterval, UINT Flags) {
     // init graphics if we haven't yet, and the other hooks have fetched the ptr
     if (!dx_device_context)
         if (!globals.last_d3d11DeviceContext) return;
         else init_graphics(swap_chain, (ID3D11DeviceContext1*)globals.last_d3d11DeviceContext);
-    // if no dx_device then our init failed, and our code is inoperable
-    if (!dx_device) return;
+    if (!dx_device) return; // if no dx_device then our init failed, and our code is inoperable
 
-
-    ImGui_ImplDX11_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
-
-    ImGui::Begin("Another Window"); 
-    ImGui::Text("Hello from another window!");
-    ImGui::End();
-
-    ImGui::Render();
-    ImGui_ImplDX11_RenderDrawData(draw_data);
+    DrawGUI(dx_device, dx_device_context);
 }
 
 LRESULT CALLBACK WndProcHook2(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
@@ -65,6 +62,9 @@ LRESULT CALLBACK WndProcHook2(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
     case WM_KEYDOWN:
     case WM_KEYUP:
     case WM_MOVE:
+        break;
+    case WM_SIZE:
+        RegeneratePerspectiveMatrix();
         break;
     }
 
@@ -106,6 +106,8 @@ void init_graphics(IDXGISwapChain* swap_chain, ID3D11DeviceContext1* _dx_device_
     ImGui::StyleColorsDark();
     ImGui_ImplWin32_Init(target_hwnd);
     ImGui_ImplDX11_Init(dx_device, dx_device_context);
+
+    RegeneratePerspectiveMatrix();
 }
 
 
