@@ -47,14 +47,13 @@ void Uint64Field(const char* label, unsigned long long* variable) {
         *variable = std::strtoull(input, nullptr, 16);
 }
 
-void RegeneratePerspectiveMatrix() {
+void RegeneratePerspectiveMatrix(HWND hwnd) {
     // Get window dimensions
     int windowWidth, windowHeight;
     float windowAspectRatio;
     {
-        auto var = GetActiveWindow();
         RECT clientRect;
-        GetClientRect(var, &clientRect);
+        GetClientRect(hwnd, &clientRect);
         windowWidth = clientRect.right - clientRect.left;
         windowHeight = clientRect.bottom - clientRect.top;
         windowAspectRatio = (float)windowWidth / (float)windowHeight;
@@ -62,7 +61,7 @@ void RegeneratePerspectiveMatrix() {
     __perspectiveMat = makePerspectiveMat(windowAspectRatio, degreesToRadians(fov), 0.1f, 1000.f);
 }
 
-void DrawGUI(ID3D11Device1* dx_device, ID3D11DeviceContext1* dx_device_context) {
+void DrawGUI(ID3D11Device1* dx_device, ID3D11DeviceContext1* dx_device_context, HWND target_hwnd) {
     // reload target window thing
     if (myTexture) myTexture->Release();
     myTexture = GetTargetProcessScreen(dx_device_context, dx_device, target_window_name);
@@ -134,7 +133,7 @@ void DrawGUI(ID3D11Device1* dx_device, ID3D11DeviceContext1* dx_device_context) 
     ImGui::Begin("Config UIs");
     ImGui::InputText("Target process", target_window_name, 256);
     if (ImGui::DragFloat("UI FOV", &fov, 1, 45, 180)) 
-        RegeneratePerspectiveMatrix();
+        RegeneratePerspectiveMatrix(target_hwnd);
 
     ImGui::Checkbox("Camera rotation relative", &rotation_relative);
     if (rotation_relative) {

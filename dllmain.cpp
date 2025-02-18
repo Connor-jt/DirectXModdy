@@ -2,6 +2,9 @@
 
 #include "pch.h"
 
+static int doodybug_number = 0;
+static int drawcount = 0;
+
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
@@ -22,6 +25,7 @@ using namespace std;
 #include "3DMaths.h"
 #include "WindowFetcher.h"
 #include "guiInterface.h"
+#include "TestObjRender.h"
 
 
 
@@ -42,6 +46,7 @@ WNDPROC winproc_callback = 0;
 // directX info
 ID3D11Device1* dx_device = nullptr;
 ID3D11DeviceContext1* dx_device_context = nullptr;
+IDXGISwapChain* last_swap_chain = nullptr;
 
 // random debugging junk
 std::map<void*, int> device_dict;
@@ -55,11 +60,16 @@ extern "C" __declspec(dllexport) void DLLRun(IDXGISwapChain* swap_chain, UINT Sy
     //    else init_graphics(swap_chain, (ID3D11DeviceContext1*)globals.last_d3d11DeviceContext);
     if (!dx_device) return; // if no dx_device then our init failed, and our code is inoperable
 
+    // for testing purposes
+    RegeneratePerspectiveMatrix(target_hwnd);
+    drawcount++;
+
     device_dict[swap_chain] = true;
     globals.unique_swap_chains = device_dict.size();
     globals.actual_d3d11DeviceContext = dx_device_context;
 
-    DrawGUI(dx_device, dx_device_context);
+    ObjRender(dx_device_context);
+    DrawGUI(dx_device, dx_device_context, target_hwnd);
 }
 
 LRESULT CALLBACK WndProcHook2(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
@@ -67,19 +77,36 @@ LRESULT CALLBACK WndProcHook2(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 
     switch (msg) {
     case WM_KEYDOWN:
+        if (wparam == VK_RETURN) {
+            char buff[100];
+            sprintf_s(buff, "number alert: %d", doodybug_number);
+            MessageBoxA(0, buff, "WinProc info", 0);
+        }
+        if (wparam == VK_BACK) {
+            char buff[100];
+            sprintf_s(buff, "injected draw count: %d", drawcount);
+            MessageBoxA(0, buff, "WinProc info", 0);
+        }
     case WM_KEYUP:
     case WM_MOVE:
         break;
     case WM_SIZE:
-        RegeneratePerspectiveMatrix();
+        RegeneratePerspectiveMatrix(target_hwnd);
+        if (last_swap_chain && dx_device)
+            ReloadViewportStuff(last_swap_chain, dx_device, hwnd);
         break;
     }
 
     return CallWindowProcA(winproc_callback, hwnd, msg, wparam, lparam);
 }
 
-void init_graphics(IDXGISwapChain* swap_chain) {
 
+
+void init_graphics(IDXGISwapChain* swap_chain) {
+    last_swap_chain = swap_chain;
+    doodybug_number |= 1;
+    dx_device = 0;
+    dx_device_context = (ID3D11DeviceContext1*)1; // make this thing have a value
 
     // config the target widnow & set windows event hook
     DXGI_SWAP_CHAIN_DESC swapChainDesc;
@@ -108,14 +135,17 @@ void init_graphics(IDXGISwapChain* swap_chain) {
     dx_device->GetImmediateContext(&deviceContext);
     if (!deviceContext) {
         MessageBoxA(0, "failed to get directX device context from directX device", "DirectX hook failure", 0);
+        dx_device = 0;
         return;
     }
     if (FAILED(deviceContext->QueryInterface(__uuidof(ID3D11DeviceContext1), reinterpret_cast<void**>(&dx_device_context)))) {
         MessageBoxA(0, "failed to query directX device context for version 1", "DirectX hook failure", 0);
+        dx_device = 0;
         return;
     }
 
 
+    InitObjRender(swap_chain, dx_device, target_hwnd);
 
     // Setup ImGui
     IMGUI_CHECKVERSION();
@@ -127,7 +157,9 @@ void init_graphics(IDXGISwapChain* swap_chain) {
     ImGui_ImplWin32_Init(target_hwnd);
     ImGui_ImplDX11_Init(dx_device, dx_device_context);
 
-    RegeneratePerspectiveMatrix();
+    RegeneratePerspectiveMatrix(target_hwnd);
+
+    doodybug_number |= 2;
 }
 
 

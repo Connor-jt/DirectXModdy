@@ -57,6 +57,12 @@
     <ClInclude Include="guiInterface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TestObjRender.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -86,5 +92,13 @@
     <ClCompile Include="imgui\imgui_impl_win32.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="injected_resources\test.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="injected_resources\injected_shaders.hlsl" />
   </ItemGroup>
 </Project>
