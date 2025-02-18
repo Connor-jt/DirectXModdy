@@ -146,7 +146,7 @@ static void ImGui_ImplDX11_SetupRenderState(ImDrawData* draw_data, ID3D11DeviceC
 }
 
 // Render function
-void ImGui_ImplDX11_RenderDrawData(ImDrawData* draw_data, std::vector<float4x4> window_position_data)
+void ImGui_ImplDX11_RenderDrawData(ImDrawData* draw_data, std::vector<float4x4> window_position_data, unsigned long long target_hwnd)
 {
     // Avoid rendering when minimized
     if (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f)
@@ -318,7 +318,7 @@ void ImGui_ImplDX11_RenderDrawData(ImDrawData* draw_data, std::vector<float4x4> 
                         memcpy(&constant_buffer->mvp, &inverted, sizeof(inverted));
 
                         RECT clientRect;
-                        GetClientRect(GetActiveWindow(), &clientRect);
+                        GetClientRect((HWND)target_hwnd, &clientRect);
                         //int windowWidth = clientRect.right - clientRect.left;
                         //int windowHeight = clientRect.bottom - clientRect.top;
 

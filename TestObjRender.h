@@ -339,28 +339,30 @@ void ObjRender(ID3D11DeviceContext1* dx_device_context) {
     dx_device_context->RSSetState(SolidRasterState);
     dx_device_context->OMSetDepthStencilState(SolidDepthStencilState, 0);
 
-    // Update constant buffer
-    D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-    dx_device_context->Map(__constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-    __Constants* constants = (__Constants*)(mappedSubresource.pData);
-    constants->modelViewProj = __modelViewProj1;
-    dx_device_context->Unmap(__constantBuffer, 0);
-    dx_device_context->DrawIndexed(__numIndices, 0, 0);
+    if (!skip_blockies) {
+        // Update constant buffer
+        D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+        dx_device_context->Map(__constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+        __Constants* constants = (__Constants*)(mappedSubresource.pData);
+        constants->modelViewProj = __modelViewProj1;
+        dx_device_context->Unmap(__constantBuffer, 0);
+        dx_device_context->DrawIndexed(__numIndices, 0, 0);
     
 
-    // then make another draw call
-    dx_device_context->Map(__constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-    constants = (__Constants*)(mappedSubresource.pData);
-    constants->modelViewProj = __modelViewProj2;
-    dx_device_context->Unmap(__constantBuffer, 0);
-    dx_device_context->DrawIndexed(__numIndices, 0, 0);
+        // then make another draw call
+        dx_device_context->Map(__constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+        constants = (__Constants*)(mappedSubresource.pData);
+        constants->modelViewProj = __modelViewProj2;
+        dx_device_context->Unmap(__constantBuffer, 0);
+        dx_device_context->DrawIndexed(__numIndices, 0, 0);
 
-    // make a 3rd draw call
-    dx_device_context->Map(__constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-    constants = (__Constants*)(mappedSubresource.pData);
-    constants->modelViewProj = __modelViewProj3;
-    dx_device_context->Unmap(__constantBuffer, 0);
-    dx_device_context->DrawIndexed(__numIndices, 0, 0);
+        // make a 3rd draw call
+        dx_device_context->Map(__constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+        constants = (__Constants*)(mappedSubresource.pData);
+        constants->modelViewProj = __modelViewProj3;
+        dx_device_context->Unmap(__constantBuffer, 0);
+        dx_device_context->DrawIndexed(__numIndices, 0, 0);
+    }
 
 
     doodybug_number |= 4;

@@ -1,5 +1,7 @@
 #pragma once
 
+static bool skip_blockies = false;
+
 // config settings stuff
 unsigned long long camera_rotation_yaw_offset = 0;
 unsigned long long camera_rotation_pit_offset = 0;
@@ -68,6 +70,7 @@ void DrawGUI(ID3D11Device1* dx_device, ID3D11DeviceContext1* dx_device_context, 
 
     std::vector<float4x4> views = {};
 
+    drawcount = 0;
     float4x4 modelViewProj;
     if (rotation_relative) {
 
@@ -76,15 +79,19 @@ void DrawGUI(ID3D11Device1* dx_device, ID3D11DeviceContext1* dx_device_context, 
         if (!ReadProcessMemory(GetCurrentProcess(), (LPCVOID)camera_rotation_yaw_offset, &temp_buffer, 4, NULL)
             || !ReadProcessMemory(GetCurrentProcess(), (LPCVOID)camera_rotation_pit_offset, &temp_buffer, 4, NULL)
             || !ReadProcessMemory(GetCurrentProcess(), (LPCVOID)camera_rotation_rol_offset, &temp_buffer, 4, NULL))
+        {
+            drawcount = 1;
             goto data_offset_failed;
+        }
 
         {   // get widget size
             RECT clientRect;
-            GetClientRect(GetActiveWindow(), &clientRect);
+            GetClientRect(target_hwnd, &clientRect);
             float widget_size = 5.0f / (clientRect.right - clientRect.left);
             widget_size *= w_scale;
 
             if (!position_relative) {
+                drawcount = 2;
                 float3 widget_camera_position = { 0, 0, 0 };
                 // NOTE: cheapo rotation logic that doesn't actually work right!!!!
                 float4x4 widget_viewMat = translationMat(-widget_camera_position) * rotateYMat(-*(float*)camera_rotation_yaw_offset + w_yaw) * rotateXMat(-*(float*)camera_rotation_pit_offset + w_pitch);
@@ -92,12 +99,15 @@ void DrawGUI(ID3D11Device1* dx_device, ID3D11DeviceContext1* dx_device_context, 
                 modelViewProj = widget_matrix * widget_viewMat * __perspectiveMat;
 
             }
-            else { // draw into screen space
+            else { // draw into world space
+
                 if (!ReadProcessMemory(GetCurrentProcess(), (LPCVOID)camera_position_x_offset, &temp_buffer, 4, NULL)
                     || !ReadProcessMemory(GetCurrentProcess(), (LPCVOID)camera_position_y_offset, &temp_buffer, 4, NULL)
                     || !ReadProcessMemory(GetCurrentProcess(), (LPCVOID)camera_position_z_offset, &temp_buffer, 4, NULL))
-                    goto data_offset_failed; {
+                    { drawcount = 3; goto data_offset_failed;  } {
+                    
 
+                    drawcount = 4;
                     float3 widget_camera_position = { *(float*)camera_position_x_offset, *(float*)camera_position_y_offset, *(float*)camera_position_z_offset };
                     float4x4 widget_viewMat = translationMat(-widget_camera_position) * rotateYMat(-*(float*)camera_rotation_yaw_offset) * rotateXMat(-*(float*)camera_rotation_pit_offset);
                     float4x4 widget_matrix = scaleMat(float3{ widget_size, -widget_size, -widget_size }) * rotateYMat(w_yaw) * rotateXMat(w_pitch) * translationMat({ w_x, w_y, w_z });
@@ -135,6 +145,7 @@ void DrawGUI(ID3D11Device1* dx_device, ID3D11DeviceContext1* dx_device_context, 
     if (ImGui::DragFloat("UI FOV", &fov, 1, 45, 180)) 
         RegeneratePerspectiveMatrix(target_hwnd);
 
+    ImGui::Checkbox("Dont draw ugly cubes", &skip_blockies);
     ImGui::Checkbox("Camera rotation relative", &rotation_relative);
     if (rotation_relative) {
         Uint64Field("Camera YAW", &camera_rotation_yaw_offset);
@@ -161,5 +172,5 @@ void DrawGUI(ID3D11Device1* dx_device, ID3D11DeviceContext1* dx_device_context, 
     views.push_back(nanMat());
 
     ImGui::Render();
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData(), views);
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData(), views, (unsigned long long)target_hwnd);
 }

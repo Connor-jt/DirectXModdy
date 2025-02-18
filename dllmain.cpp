@@ -62,7 +62,6 @@ extern "C" __declspec(dllexport) void DLLRun(IDXGISwapChain* swap_chain, UINT Sy
 
     // for testing purposes
     RegeneratePerspectiveMatrix(target_hwnd);
-    drawcount++;
 
     device_dict[swap_chain] = true;
     globals.unique_swap_chains = device_dict.size();
@@ -84,7 +83,7 @@ LRESULT CALLBACK WndProcHook2(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
         }
         if (wparam == VK_BACK) {
             char buff[100];
-            sprintf_s(buff, "injected draw count: %d", drawcount);
+            sprintf_s(buff, "injected draw status: %d", drawcount);
             MessageBoxA(0, buff, "WinProc info", 0);
         }
     case WM_KEYUP:
