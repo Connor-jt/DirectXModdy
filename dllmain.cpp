@@ -15,6 +15,7 @@ using namespace DirectX;
 using namespace std;
 
 #include <vector>
+#include <map>
 #include <iostream>
 #include "globals.h"
 
@@ -28,7 +29,7 @@ using namespace std;
 // forward declarations
 LRESULT CALLBACK WndProcHook2(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-void init_graphics(IDXGISwapChain* swap_chain, ID3D11DeviceContext1* _dx_device_context);
+void init_graphics(IDXGISwapChain* swap_chain);
 
 // global data that gets passed through to us through assembly hooks
 DLLGLobals globals = {};
@@ -42,15 +43,21 @@ WNDPROC winproc_callback = 0;
 ID3D11Device1* dx_device = nullptr;
 ID3D11DeviceContext1* dx_device_context = nullptr;
 
-// our hooked
+// random debugging junk
+std::map<void*, int> device_dict;
 
 
 extern "C" __declspec(dllexport) void DLLRun(IDXGISwapChain* swap_chain, UINT SyncInterval, UINT Flags) {
     // init graphics if we haven't yet, and the other hooks have fetched the ptr
     if (!dx_device_context)
-        if (!globals.last_d3d11DeviceContext) return;
-        else init_graphics(swap_chain, (ID3D11DeviceContext1*)globals.last_d3d11DeviceContext);
+        init_graphics(swap_chain);
+    //    if (!globals.last_d3d11DeviceContext) return;
+    //    else init_graphics(swap_chain, (ID3D11DeviceContext1*)globals.last_d3d11DeviceContext);
     if (!dx_device) return; // if no dx_device then our init failed, and our code is inoperable
+
+    device_dict[swap_chain] = true;
+    globals.unique_swap_chains = device_dict.size();
+    globals.actual_d3d11DeviceContext = dx_device_context;
 
     DrawGUI(dx_device, dx_device_context);
 }
@@ -71,8 +78,8 @@ LRESULT CALLBACK WndProcHook2(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
     return CallWindowProcA(winproc_callback, hwnd, msg, wparam, lparam);
 }
 
-void init_graphics(IDXGISwapChain* swap_chain, ID3D11DeviceContext1* _dx_device_context) {
-    dx_device_context = _dx_device_context;
+void init_graphics(IDXGISwapChain* swap_chain) {
+
 
     // config the target widnow & set windows event hook
     DXGI_SWAP_CHAIN_DESC swapChainDesc;
@@ -84,11 +91,10 @@ void init_graphics(IDXGISwapChain* swap_chain, ID3D11DeviceContext1* _dx_device_
         return;
     }
 
-    // Get the directX device
+    // Get the D3D11 device
     ID3D11Device* pD3D11Device = nullptr;
-    dx_device_context->GetDevice(&pD3D11Device);
-    if (!pD3D11Device) {
-        MessageBoxA(0, "failed to get directX device", "DirectX hook failure", 0);
+    if (FAILED(swap_chain->GetDevice(__uuidof(ID3D11Device), (void**)&pD3D11Device))) {
+        MessageBoxA(0, "failed to get directX device from swap chain", "DirectX hook failure", 0);
         return;
     }
     // Get the ID3D11Device1 interface
@@ -96,6 +102,20 @@ void init_graphics(IDXGISwapChain* swap_chain, ID3D11DeviceContext1* _dx_device_
         MessageBoxA(0, "failed to query directX device for version 1", "DirectX hook failure", 0);
         return;
     }
+
+    // Retrieve the device context
+    ID3D11DeviceContext* deviceContext;
+    dx_device->GetImmediateContext(&deviceContext);
+    if (!deviceContext) {
+        MessageBoxA(0, "failed to get directX device context from directX device", "DirectX hook failure", 0);
+        return;
+    }
+    if (FAILED(deviceContext->QueryInterface(__uuidof(ID3D11DeviceContext1), reinterpret_cast<void**>(&dx_device_context)))) {
+        MessageBoxA(0, "failed to query directX device context for version 1", "DirectX hook failure", 0);
+        return;
+    }
+
+
 
     // Setup ImGui
     IMGUI_CHECKVERSION();
