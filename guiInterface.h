@@ -19,6 +19,10 @@ static float w_scale = 1.0f;
 static bool rotation_relative;
 static bool position_relative;
 
+static bool invert_x = false;
+static bool invert_y = false;
+static bool invert_z = false;
+
 static float w_yaw;
 static float w_pitch;
 static float w_roll;
@@ -108,7 +112,11 @@ void DrawGUI(ID3D11Device1* dx_device, ID3D11DeviceContext1* dx_device_context, 
                     
 
                     drawcount = 4;
-                    float3 widget_camera_position = { *(float*)camera_position_x_offset, *(float*)camera_position_y_offset, *(float*)camera_position_z_offset };
+                    float x = (invert_x) ? -*(float*)camera_position_x_offset : *(float*)camera_position_x_offset;
+                    float y = (invert_y) ? -*(float*)camera_position_y_offset : *(float*)camera_position_y_offset;
+                    float z = (invert_z) ? -*(float*)camera_position_z_offset : *(float*)camera_position_z_offset;
+
+                    float3 widget_camera_position = { x, y, z };
                     float4x4 widget_viewMat = translationMat(-widget_camera_position) * rotateYMat(-*(float*)camera_rotation_yaw_offset) * rotateXMat(-*(float*)camera_rotation_pit_offset);
                     float4x4 widget_matrix = scaleMat(float3{ widget_size, -widget_size, -widget_size }) * rotateYMat(w_yaw) * rotateXMat(w_pitch) * translationMat({ w_x, w_y, w_z });
                     modelViewProj = widget_matrix * widget_viewMat * __perspectiveMat;
@@ -162,10 +170,14 @@ void DrawGUI(ID3D11Device1* dx_device, ID3D11DeviceContext1* dx_device_context, 
             Uint64Field("Camera X", &camera_position_x_offset);
             Uint64Field("Camera Y", &camera_position_y_offset);
             Uint64Field("Camera Z", &camera_position_z_offset);
+            ImGui::Checkbox("Invert Camera X", &invert_x);
+            ImGui::Checkbox("Invert Camera Y", &invert_y);
+            ImGui::Checkbox("Invert Camera Z", &invert_z);
 
             ImGui::DragFloat("Widget X", &w_x, 0.025f);
             ImGui::DragFloat("Widget Y", &w_y, 0.025f);
             ImGui::DragFloat("Widget Z", &w_z, 0.025f);
+
         }
     }
     ImGui::End();
